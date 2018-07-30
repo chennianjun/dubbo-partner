@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <dubbo:application name="Multi-Protocol-Provider"/>
+
+    <!--配置服务的注册中心-->
+    <dubbo:registry protocol="zookeeper" address="127.0.0.1:2181"/>
+
+    <!-- 多协议配置 -->
+    <!--配置dubbo协议-->
+    <dubbo:protocol name="dubbo" port="20880"/>
+
+    <!--配置rmi协议-->
+    <dubbo:protocol name="rmi" port="1099"/>
+
+    <!-- 使用dubbo协议暴露服务 -->
+    <!--<dubbo:service interface="com.base.dubbo.service.DemoService" version="1.0" ref="demoService" protocol="dubbo"/>-->
+    <!-- 使用rmi协议暴露服务 -->
+    <dubbo:service interface="com.base.dubbo.service.DemoService" ref="demoService" protocol="dubbo,rmi"/>
+
+    <dubbo:service interface="com.base.dubbo.service.AddService" version="1.0" ref="addService" protocol="rmi"/>
+
+    <bean id="demoService" class="com.base.dubbo.service.impl.DemoServiceImpl"/>
+
+    <bean id="addService" class="com.base.dubbo.service.impl.AddServiceImpl"/>
+</beans>

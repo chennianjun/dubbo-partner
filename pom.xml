@@ -10,7 +10,15 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>dubbo-quick-start-consumer</module>
+        <module>dubbo-direct-provider</module>
+        <module>dubbo-direct-consumer</module>
         <module>dubbo-quick-start-provider</module>
+		<module>dubbo-loadbalance-consumer</module>
+		<module>dubbo-loadbalance-provider</module>
+        <module>dubbo-multi-protocol-provider</module>
+        <module>dubbo-multi-protocol-consumer</module>
+        <module>dubbo-multi-registry-provider</module>
+        <module>dubbo-multi-registry-consumer</module>
     </modules>
 
     <dependencies>
