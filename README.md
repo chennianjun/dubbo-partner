@@ -1,4 +1,5 @@
-# dubbo框架
+# [dubbo框架API](http://dubbo.apache.org)
+### ** [dubbo框架源码](https://github.com/apache/incubator-dubbo) **
 
 ## 1、集群容错
 ### 容错模式
@@ -232,4 +233,48 @@ registry.register(URL.valueOf("memcached://10.20.153.11/com.foo.BarService?categ
 <dubbo:reference id="barService" interface="com.foo.BarService" group="*"/>
 ```
 ## 9、多版本
-*当一个接口实现，出现不兼容升级时，可以用版本号过渡，版本号不同的服务相互间不引用。*
+*当一个接口实现，出现不兼容升级时，可以用版本号过渡，版本号不同的服务相互间不引用。*  
+比如：老版本提供者配置为`<dubbo:service interface="com.base.barService" version="1.0.0"/>`新版本提供者服务可以配置`<dubbo:service interface="com.base.barService" version="2.0.0"/>`,新老版本不会相互调用。  
+则老版本的调用方配置`<dubbo:reference id="barService" interface="com.base.barService" version="1.0.0"/>`,新版本的调用者则`<dubbo:reference id="barService" interface="com.base.barService" version="2.0.0"/>`.如果不区分新老版本的调用则可这样配置:`<dubbo:reference id="barService" interface="com.base.barService" version="*"/>`
+## 10、分组聚合
+#### 配置
+- *搜索所有分组*  
+```XML
+<dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService" group="*" merger="true"/>
+```  
+- *合并指定的方法*  
+```XML
+    <dubbo:reference id="demoService2" interface="com.base.dubbo.service.DemoService" group="*">
+        <dubbo:method name="getList" merger="true"/>
+    </dubbo:reference>
+```
+- *合并指定的分组*  
+```xml
+    <dubbo:reference id="demoService3" interface="com.base.dubbo.service.DemoService" group="merge-1,merge-2" merger="true"/>
+```  
+- *指定合并策略，缺省根据返回值自动匹配,如果同一类型有两个合并器时，需指定合并器的名称,合并策略需要实现`com.alibaba.dubbo.rpc.cluster.Merger`这个类中的`merger`方法*  
+```XML
+    <dubbo:reference id="demoService4" interface="com.base.dubbo.service.DemoService" group="*">
+        <dubbo:method name="getList" merger="myMerge"/>
+    </dubbo:reference>
+```
+- *指定合并的方法将调用返回结果的指定方法进行合并，合并方法的参数类型必须是返回结果类型本身*  
+```XML
+    <dubbo:reference id="demoService5" interface="com.base.dubbo.service.DemoService" group="*">
+        <dubbo:method name="getList" merger="myMerge"/>
+    </dubbo:reference>
+```
+## 11、参数验证
+#### Mavne依赖
+```XML
+<dependency>
+    <groupId>javax.validation</groupId>
+    <artifactId>validation-api</artifactId>
+    <version>1.0.0.GA</version>
+</dependency>
+<dependency>
+    <groupId>org.hibernate</groupId>
+    <artifactId>hibernate-validator</artifactId>
+    <version>4.2.0.Final</version>
+</dependency>
+```
