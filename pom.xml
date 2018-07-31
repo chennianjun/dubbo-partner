@@ -10,8 +10,12 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>dubbo-quick-start-consumer</module>
+		<module>dubbo-parameter-valid-consumer</module>
+		<module>dubbo-parameter-valid-provider</module>
         <module>dubbo-direct-provider</module>
         <module>dubbo-direct-consumer</module>
+		<module>dubbo-generic-provider</module>
+        <module>dubbo-generic-consumer</module>
 		<module>dubbo-group-merge-provider</module>
         <module>dubbo-group-merge-consumer</module>
         <module>dubbo-quick-start-provider</module>

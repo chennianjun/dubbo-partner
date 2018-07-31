@@ -6,15 +6,15 @@
 * Failover Cluster:失败自动切换，当出现失败，重试其他的服务器。通常使用读操作，但重试会带来更长的延时。
 #####配置如下：
 ```xml
-<dubbo:service retries="2"/>  
+<dubbo:service retries="2"/>
 ```
-或  
+或
 ```xml
 <dubbo:reference retries="2"/>
 ```
 或
 ```xml
-<dubbo:reference>  
+<dubbo:reference>
     <dubbo:method name="findFoo" retries="2"/>
 </dubbo:reference>
 ```
@@ -41,9 +41,9 @@
 > * LeastActive LoadBalance
 >> 最少活跃调用数，相同活跃数的随机，活跃数指调用前后计数差。
 > * ConsistentHash LoadBalance
->> 一致性 Hash，相同参数的请求总是发到同一提供者。  
+>> 一致性 Hash，相同参数的请求总是发到同一提供者。
 >> 缺省只对第一个参数 Hash，如果要修改，如下配置:
->> `<dubbo:parameter key="hash.arguments" value="0,1" />`  
+>> `<dubbo:parameter key="hash.arguments" value="0,1" />`
 >> 缺省用 160 份虚拟节点，如果要修改,如下配置:
 `<dubbo:parameter key="hash.nodes" value="320" />`
 ### 负载均衡配置
@@ -83,13 +83,13 @@
 java -Dcom.alibaba.xxx.XxxService=dubbo://localhost:20890
 ```
 ### 通过文件映射
-服务较多的情况下，也可以使用文件映射用`-Ddubbo.resolve.file`此配置优先级高于`<dubbo:reference>`  
-`java -Ddubbo.resolve.file=xxx.properties`  
-然后在映射文件 xxx.properties 中加入配置，其中 key 为服务名，value 为服务提供者 URL：  
+服务较多的情况下，也可以使用文件映射用`-Ddubbo.resolve.file`此配置优先级高于`<dubbo:reference>`
+`java -Ddubbo.resolve.file=xxx.properties`
+然后在映射文件 xxx.properties 中加入配置，其中 key 为服务名，value 为服务提供者 URL：
 `com.alibaba.xxx.XxxService=dubbo://localhost:20890`
 
 ## 3、只订阅
-![Sub](images/subscribe-only.jpg)  
+![Sub](images/subscribe-only.jpg)
 ##### 禁止注册服务
 `<dubbo:registry address="ip:port" register="false"/>`
 ##### 或者
@@ -109,14 +109,14 @@ java -Dcom.alibaba.xxx.XxxService=dubbo://localhost:20890
 ```
 
 ## 5、静态服务
-*有时候希望人工管理服务提供者的上线和下线，此时需将注册中心标识为非动态管理模式。*  
-`<dubbo:registry address="ip:port" dynamic="false"/>`  
-*或者*  
+*有时候希望人工管理服务提供者的上线和下线，此时需将注册中心标识为非动态管理模式。*
+`<dubbo:registry address="ip:port" dynamic="false"/>`
+*或者*
 `<dubbo:registry address="ip:port?dynamic=false"/>`
 ```
  注意：该情景下，注册中心不会自动删除，只能手动删除
 ```
-*如果是一个第三方独立提供者，比如 memcached，可以直接向注册中心写入提供者地址信息，消费者正常使用 .*  
+*如果是一个第三方独立提供者，比如 memcached，可以直接向注册中心写入提供者地址信息，消费者正常使用 .*
 ```java
 RegistryFactory registryFactory = ExtensionLoader.getExtensionLoader(RegistryFactory.class).getAdaptiveExtension();
 Registry registry = registryFactory.getRegistry(URL.valueOf("zookeeper://10.20.153.10:2181"));
@@ -233,32 +233,32 @@ registry.register(URL.valueOf("memcached://10.20.153.11/com.foo.BarService?categ
 <dubbo:reference id="barService" interface="com.foo.BarService" group="*"/>
 ```
 ## 9、多版本
-*当一个接口实现，出现不兼容升级时，可以用版本号过渡，版本号不同的服务相互间不引用。*  
-比如：老版本提供者配置为`<dubbo:service interface="com.base.barService" version="1.0.0"/>`新版本提供者服务可以配置`<dubbo:service interface="com.base.barService" version="2.0.0"/>`,新老版本不会相互调用。  
+*当一个接口实现，出现不兼容升级时，可以用版本号过渡，版本号不同的服务相互间不引用。*
+比如：老版本提供者配置为`<dubbo:service interface="com.base.barService" version="1.0.0"/>`新版本提供者服务可以配置`<dubbo:service interface="com.base.barService" version="2.0.0"/>`,新老版本不会相互调用。
 则老版本的调用方配置`<dubbo:reference id="barService" interface="com.base.barService" version="1.0.0"/>`,新版本的调用者则`<dubbo:reference id="barService" interface="com.base.barService" version="2.0.0"/>`.如果不区分新老版本的调用则可这样配置:`<dubbo:reference id="barService" interface="com.base.barService" version="*"/>`
 ## 10、分组聚合
 #### 配置
-- *搜索所有分组*  
+- *搜索所有分组*
 ```XML
 <dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService" group="*" merger="true"/>
-```  
-- *合并指定的方法*  
+```
+- *合并指定的方法*
 ```XML
     <dubbo:reference id="demoService2" interface="com.base.dubbo.service.DemoService" group="*">
         <dubbo:method name="getList" merger="true"/>
     </dubbo:reference>
 ```
-- *合并指定的分组*  
+- *合并指定的分组*
 ```xml
     <dubbo:reference id="demoService3" interface="com.base.dubbo.service.DemoService" group="merge-1,merge-2" merger="true"/>
-```  
-- *指定合并策略，缺省根据返回值自动匹配,如果同一类型有两个合并器时，需指定合并器的名称,合并策略需要实现`com.alibaba.dubbo.rpc.cluster.Merger`这个类中的`merger`方法*  
+```
+- *指定合并策略，缺省根据返回值自动匹配,如果同一类型有两个合并器时，需指定合并器的名称,合并策略需要实现`com.alibaba.dubbo.rpc.cluster.Merger`这个类中的`merger`方法*
 ```XML
     <dubbo:reference id="demoService4" interface="com.base.dubbo.service.DemoService" group="*">
         <dubbo:method name="getList" merger="myMerge"/>
     </dubbo:reference>
 ```
-- *指定合并的方法将调用返回结果的指定方法进行合并，合并方法的参数类型必须是返回结果类型本身*  
+- *指定合并的方法将调用返回结果的指定方法进行合并，合并方法的参数类型必须是返回结果类型本身*
 ```XML
     <dubbo:reference id="demoService5" interface="com.base.dubbo.service.DemoService" group="*">
         <dubbo:method name="getList" merger="myMerge"/>
@@ -278,3 +278,278 @@ registry.register(URL.valueOf("memcached://10.20.153.11/com.foo.BarService?categ
     <version>4.2.0.Final</version>
 </dependency>
 ```
+#### 代码示例
+```java
+import javax.validation.constraints.*;
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * @project:dubbo-application
+ * @package:com.base.dubbo.api
+ * @create_date:2018/1/23 10:40
+ * @author:Subtimental
+ * @description:TODO
+ */
+public class ValidationParameter implements Serializable{
+    @NotNull // disallow null
+    @Size(min = 2, max = 20) // min and max
+    private String name;
+
+    @NotNull(groups = ValidationService.Save.class) // disallow null when save, but allow null when update, that is: not update
+    @Pattern(regexp = "^\\s*\\w+(?:\\.{0,1}[\\w-]+)*@[a-zA-Z0-9]+(?:[-.][a-zA-Z0-9]+)*\\.[a-zA-Z]+\\s*$")
+    private String email;
+
+    @Min(18) // min
+    @Max(100) // max
+    private int age;
+
+    @Past // must be a past time
+    private Date loginDate;
+
+    @Future // must be a future time
+    private Date expiryDate;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Date getLoginDate() {
+        return loginDate;
+    }
+
+    public void setLoginDate(Date loginDate) {
+        this.loginDate = loginDate;
+    }
+
+    public Date getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(Date expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+}
+```
+#### 分组和关联验证示例
+```java
+import javax.validation.GroupSequence;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+
+/**
+ * @project:dubbo-application
+ * @package:com.base.dubbo.api
+ * @create_date:2018/1/23 10:41
+ * @author:Subtimental
+ * @description:TODO
+ */
+public interface ValidationService {
+    void save(ValidationParameter parameter);
+
+    void update(ValidationParameter parameter);
+
+    void delete(@Min(1) long id, @NotNull @Size(min = 2, max = 16) @Pattern(regexp = "^[a-zA-Z]+$") String operator);
+
+    /**
+     * annotation which has the same name with the method but has the first letter in capital
+     * used for distinguish validation scenario, for example: @NotNull(groups = ValidationService.Save.class)
+     * optional
+     */
+    @GroupSequence(Update.class)// 同时验证Update组规则
+    @interface Save {
+    }
+
+    /**
+     * annotation which has the same name with the method but has the first letter in capital
+     * used for distinguish validation scenario, for example: @NotNull(groups = ValidationService.Update.class)
+     * optional
+     */
+    @interface Update {
+    }
+}
+```
+#### 提供者配置文件
+```XML
+    <!-- 提供方应用信息，用于计算依赖关系 -->
+    <dubbo:application name="hello-world-app"/>
+
+    <dubbo:registry protocol="zookeeper" address="127.0.0.1:2181" check="false"/>
+
+    <!-- 用dubbo协议在20880端口暴露服务 -->
+    <dubbo:protocol name="dubbo"  port="20881" />
+
+    <!-- 和本地bean一样实现服务 -->
+    <dubbo:service interface="com.base.dubbo.api.ValidationService" ref="validationService" validation="true" />
+
+    <bean id="validationService" class="com.base.dubbo.service.ValidationServiceImpl"/>
+```
+#### 消费方配置文件
+```XML
+    <!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
+    <dubbo:application name="consumer-of-helloworld-app"  />
+
+    <!-- 使用multicast广播注册中心暴露发现服务地址 -->
+    <dubbo:registry protocol="zookeeper" address="127.0.0.1:2181"/>
+
+    <!-- 生成远程服务代理，可以和本地bean一样使用demoService -->
+    <!--dubbo.reference.check="false"属性是关闭某个服务的启动时检查-->
+    <!--dubbo.consumer.check="false"属性是关闭所有服务的启动时检查,相当于配置默认值-->
+    <!--dubbo.registry.check="false"属性是关闭注册中心启动时检查-->
+    <dubbo:reference id="validationService" interface="com.base.dubbo.api.ValidationService"
+                     validation="true"/>
+```
+#### 消费方验证异常信息
+```java
+import com.base.dubbo.api.ValidationParameter;
+import com.base.dubbo.api.ValidationService;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import java.util.Date;
+import java.util.Set;
+
+/**
+ * @project:dubbo-application
+ * @package:com.base.dubbo
+ * @create_date:2018/1/23 10:51
+ * @author:Subtimental
+ * @description:TODO
+ */
+public class ValidationConsumer {
+
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("consumer.xml");
+        context.start();
+
+        ValidationService validationService = (ValidationService) context.getBean("validationService");
+
+        // Save OK
+        ValidationParameter parameter = new ValidationParameter();
+        parameter.setName("liangfei");
+        parameter.setEmail("liangfei@liang.fei");
+        parameter.setAge(50);
+        parameter.setLoginDate(new Date(System.currentTimeMillis() - 1000000));
+        parameter.setExpiryDate(new Date(System.currentTimeMillis() + 1000000));
+        validationService.save(parameter);
+        System.out.println("Validation Save OK");
+
+        // Save Error
+        try {
+            parameter = new ValidationParameter();
+            validationService.save(parameter);
+            System.err.println("Validation Save ERROR");
+        } catch (ConstraintViolationException e) {
+            Set<ConstraintViolation<?>> constraintViolations = e.getConstraintViolations();
+            System.out.println(constraintViolations);
+        }
+
+        // Delete OK
+        validationService.delete(2, "abc");
+        System.out.println("Validation Delete OK");
+
+        // Delete Error
+        try {
+            validationService.delete(0, "abc");
+            System.err.println("Validation Delete ERROR");
+        } catch (ConstraintViolationException e) {
+            Set<ConstraintViolation<?>> constraintViolations = e.getConstraintViolations();
+            System.out.println(constraintViolations);
+        }
+    }
+
+}
+```
+## 12、结果缓存
+*结果缓存 ，用于加速热门数据的访问速度，Dubbo 提供声明式缓存，以减少用户加缓存的工作量 。*
+#### 缓存类型
+- `lru`:基于最近最少使用原则删除多余缓存，保持最热的数据被缓存。
+- `threadlocal`:当前线程缓存，比如一个页面渲染，用到很多`portal`，每个`portal`都要去查用户信息，通过线程缓存，可以减少这种多余访问。
+- `jcache` 与 `JSR107` 集成，可以桥接各种缓存实现。
+#### 消费端配置
+```XML
+<dubbo:reference interface="XXX" cache="lru"/>
+```
+#### 或者
+```XML
+<dubbo:reference interface="xxx">
+    <dubbo:method name="findBar" cache="lru"/>
+<dubbo:reference/>
+```
+## 13、泛化引用
+###`与泛化的实现刚好相反，在客户端进行调用没有api的情况`
+*泛化接口调用方式主要用于客户端没有 `API` 接口及模型类元的情况，参数及返回值中的所有 `POJO` 均用 `Map` 表示，通常用于框架集成，比如：实现一个通用的服务测试框架，可通过 `GenericService` 调用所有服务实现。*
+#### 客户端泛型引用配置
+```XML
+<dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService" generic="true"/>
+```
+#### 或者java配置
+```java
+import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.ReferenceConfig;
+import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.rpc.service.GenericService;
+import com.base.dubbo.service.DemoService;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class Consumer {
+    public static void main(String[] args) throws Exception {
+        //使用java配置
+        // 引用远程服务
+        // 该实例很重量，里面封装了所有与注册中心及服务提供方连接，请缓存
+        ReferenceConfig<GenericService> serviceReferenceConfig = new ReferenceConfig<>();
+        //配置应用相关信息
+        ApplicationConfig applicationConfig = new ApplicationConfig("genericName");
+        serviceReferenceConfig.setApplication(applicationConfig);
+        serviceReferenceConfig.setInterface(DemoService.class);
+        //配置注册信息
+        RegistryConfig registryConfig = new RegistryConfig();
+        registryConfig.setAddress("127.0.0.1:2181");
+        registryConfig.setProtocol("zookeeper");
+        serviceReferenceConfig.setRegistry(registryConfig);
+        // 声明为泛化接口
+        serviceReferenceConfig.setGeneric(true);
+        // 用com.alibaba.dubbo.rpc.service.GenericService可以替代所有接口引用
+        GenericService genericService = serviceReferenceConfig.get();
+        // 基本类型以及Date,List,Map等不需要转换，直接调用
+        Object sayHello = genericService.$invoke("sayHello", new String[]{"java.lang.String"}, new Object[]{"generic"});
+        System.out.println(sayHello);
+
+        // 用Map表示POJO参数，如果返回值为POJO也将自动转成Map
+        Map<String, Object> person = new HashMap<>();
+        person.put("id", "007");
+        person.put("name", "zhangsan");
+        // 如果返回POJO将自动转成Map
+        Object findByPerson = genericService.$invoke("findByPerson", new String[]{"com.base.dubbo.domain.Person"}, new Object[]{person});
+        System.out.println(findByPerson);
+    }
+}
+```
+## 14、泛化的实现
+###`与泛化引用刚好相反，在服务端进行实现没有api的情况`
+*泛接口实现方式主要用于服务器端没有API接口及模型类元的情况，参数及返回值中的所有POJO均用Map表示，通常用于框架集成，比如：实现一个通用的远程服务Mock框架，可通过实现GenericService接口处理所有服务请求。*
