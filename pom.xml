@@ -16,6 +16,8 @@
         <module>dubbo-direct-consumer</module>
 		<module>dubbo-generic-provider</module>
         <module>dubbo-generic-consumer</module>
+		<module>dubbo-generic-server-provider</module>
+        <module>dubbo-generic-server-consumer</module>
 		<module>dubbo-group-merge-provider</module>
         <module>dubbo-group-merge-consumer</module>
         <module>dubbo-quick-start-provider</module>

@@ -1,5 +1,5 @@
 # [dubbo框架API](http://dubbo.apache.org)
-### ** [dubbo框架源码](https://github.com/apache/incubator-dubbo) **
+### [dubbo框架源码](https://github.com/apache/incubator-dubbo)
 
 ## 1、集群容错
 ### 容错模式
@@ -553,3 +553,92 @@ public class Consumer {
 ## 14、泛化的实现
 ###`与泛化引用刚好相反，在服务端进行实现没有api的情况`
 *泛接口实现方式主要用于服务器端没有API接口及模型类元的情况，参数及返回值中的所有POJO均用Map表示，通常用于框架集成，比如：实现一个通用的远程服务Mock框架，可通过实现GenericService接口处理所有服务请求。*
+#### 代码示例(<font color=red size=4 face="黑体">api接口实现</font>)
+```java
+import com.alibaba.dubbo.rpc.service.GenericException;
+import com.alibaba.dubbo.rpc.service.GenericService;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
+public class MyGenericService implements GenericService {
+    @Override
+    public Object $invoke(String method, String[] parameterTypes, Object[] args) throws GenericException {
+        if ("sayHello".equals(method)) {
+            return "welcome " + args[0];
+        }
+        if ("findByPerson".equals(method)) {
+            try {
+                Class<?> aClass = Class.forName(parameterTypes[0]);
+                Object instance = aClass.newInstance();
+                Field[] declaredFields = instance.getClass().getDeclaredFields();
+                HashMap<String, Object> hashMap = (HashMap<String, Object>) args[0];
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(instance, hashMap.get(field.getName()));
+                }
+                return instance;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return "NOT FOUND";
+    }
+}
+```
+#### spring xml配置
+```XML
+    <!-- 声明需要暴露的服务接口 -->
+    <dubbo:service interface="com.base.dubbo.service.DemoService" ref="demoService"/>
+
+    <!-- 和本地bean一样实现服务 -->
+    <bean id="demoService" class="com.base.dubbo.service.impl.MyGenericService" />
+```
+#### java Api配置
+```java
+import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.config.ServiceConfig;
+import com.alibaba.dubbo.rpc.service.GenericService;
+import com.base.dubbo.service.DemoService;
+import com.base.dubbo.service.impl.MyGenericService;
+
+public class Provider {
+    public static void main(String[] args) throws Exception {
+//        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] {"provider.xml"});
+//        context.start();
+//        System.out.println("启动成功...");
+//        System.in.read(); // 按任意键退出
+        GenericService genericService = new MyGenericService();
+        ServiceConfig<GenericService> serviceConfig = new ServiceConfig<>();
+        serviceConfig.setInterface(DemoService.class);
+        serviceConfig.setRef(genericService);
+        serviceConfig.setApplication(new ApplicationConfig("genericServiceProvider"));
+        RegistryConfig registryConfig = new RegistryConfig();
+        registryConfig.setProtocol("zookeeper");
+        registryConfig.setAddress("127.0.0.1:2181");
+        serviceConfig.setRegistry(registryConfig);
+        serviceConfig.export();
+        System.out.println("启动成功...");
+        System.in.read();
+    }
+}
+```
+## 15、回声测试
+*能够测试服务是否畅通可用于监控，所有服务自动实现 `EchoService` 接口，只需将任意服务引用强制转型为 `EchoService`.*
+#### spring配置
+```XML
+  <dubbo:reference id="memberService" interface="com.xxx.MemberService" />
+```
+#### 调用代码
+```java
+  // 远程服务引用
+  MemberService memberService = ctx.getBean("memberService");
+
+  EchoService echoService = (EchoService) memberService; // 强制转型为EchoService
+
+  // 回声测试可用性
+  String status = echoService.$echo("OK");
+   
+  assert(status.equals("OK"));
+```
