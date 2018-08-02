@@ -10,10 +10,20 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>dubbo-quick-start-consumer</module>
+		<module>dubbo-event-provider</module>
+		<module>dubbo-event-consumer</module>
 		<module>dubbo-parameter-valid-consumer</module>
 		<module>dubbo-parameter-valid-provider</module>
         <module>dubbo-direct-provider</module>
         <module>dubbo-direct-consumer</module>
+		<module>dubbo-async-provider</module>
+        <module>dubbo-async-consumer</module>
+        <module>dubbo-stub-provider</module>
+        <module>dubbo-stub-consumer</module>
+		<module>dubbo-callback-provider</module>
+        <module>dubbo-callback-consumer</module>
+		<module>dubbo-rpc-context-provider</module>
+        <module>dubbo-rpc-context-consumer</module>
 		<module>dubbo-generic-provider</module>
         <module>dubbo-generic-consumer</module>
 		<module>dubbo-generic-server-provider</module>

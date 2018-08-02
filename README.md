@@ -639,6 +639,340 @@ public class Provider {
 
   // 回声测试可用性
   String status = echoService.$echo("OK");
-   
+
   assert(status.equals("OK"));
 ```
+## 16、上下文信息(RpcContext)
+*上下文中存放的是当前调用过程中所需的环境信息。*
+#### 服务提供方配置
+```java
+import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.rpc.RpcContext;
+import com.base.dubbo.service.DemoService;
+
+public class DemoServiceImpl implements DemoService {
+    public String sayHello(String name) {
+        // 本端是否为提供端，这里会返回true
+        boolean providerSide = RpcContext.getContext().isProviderSide();
+        // 获取调用方IP地址
+        String remoteHost = RpcContext.getContext().getRemoteHost();
+
+        String application = RpcContext.getContext().getUrl().getParameter("application");
+        URL url = RpcContext.getContext().getUrl().addParameter("zhangsan", "HaHa");
+        System.out.println(url.toFullString());
+        RpcContext.getContext().set("zhangsan", "lala");
+        System.out.println(name+",providerSide:"+providerSide+",remoteHost:"+remoteHost+",application:"+application);
+        return "Hello " + name;
+    }
+}
+```
+#### 服务消费方配置
+```java
+import com.alibaba.dubbo.rpc.RpcContext;
+import com.base.dubbo.service.DemoService;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+public class Consumer {
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] {"consumer.xml"});
+        context.start();
+        DemoService demoService = (DemoService)context.getBean("demoService"); // 获取远程服务代理
+        String hello = demoService.sayHello("rpc context"); // 执行远程方法
+        RpcContext rpcContext = RpcContext.getContext();
+        //判断是否为消费端
+        boolean consumerSide = rpcContext.isConsumerSide();
+        //获取服务端地址信息
+        String remoteHost = rpcContext.getRemoteHost();
+        String parameter = rpcContext.getUrl().toFullString();
+        System.out.println(consumerSide+":"+remoteHost+":"+parameter);
+        System.out.println(hello); // 显示调用结果
+    }
+}
+```
+## 17、隐式传参
+*可以通过 RpcContext 上的 setAttachment 和 getAttachment 在服务消费方和提供方之间进行参数的隐式传递。*
+#### 在服务消费方端设置隐式参数
+```java
+        RpcContext.getContext().setAttachment("attch", "逗你玩");
+        RpcContext.getContext().setAttachment("a","b");
+```
+#### 在服务提供方端获取隐式参数
+```java
+        String attachment = RpcContext.getContext().getAttachment("attch");
+        String attachment1 = RpcContext.getContext().getAttachment("a");
+        System.out.println(attachment+":"+attachment1);
+```
+## 18、异步调用
+*基于 NIO 的非阻塞实现并行调用，客户端不需要启动多线程即可完成并行调用多个远程服务，相对多线程开销较小。*
+#### 消费端配置
+```XML
+    <dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService">
+        <dubbo:method name="sayHello" async="true"/>
+        <dubbo:method name="hello" async="true" return="false"/>
+    </dubbo:reference>
+```
+#### 消费端代码调用
+```java
+import com.alibaba.dubbo.rpc.RpcContext;
+import com.base.dubbo.service.DemoService;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.concurrent.Future;
+
+public class Consumer {
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] {"consumer.xml"});
+        context.start();
+        DemoService demoService = (DemoService)context.getBean("demoService"); // 获取远程服务代理
+        String hello = demoService.sayHello("async"); // 执行远程方法
+        System.out.println(hello); // 立即返回null
+        // 拿到调用的Future引用，当结果返回后，会被通知和设置到此Future
+        Future<String> stringFuture=RpcContext.getContext().getFuture();
+        //打印返回结果
+        System.out.println(stringFuture.get());
+
+        demoService.hello();
+    }
+}
+```
+> #### 注意:你也可以设置是否等待消息发出
+> * `sent="true"` 等待消息发出，消息发送失败将抛出异常。
+> * `sent="false"` 不等待消息发出，将消息放入 IO 队列，即刻返回。
+> `<dubbo:method name="sayHello" async="true" sent="true"/>`
+> * 如果你只是想异步，完全忽略返回值，可以配置 return="false"，以减少 Future 对象的创建和管理成本:
+> `<dubbo:method name="hello" async="true" return="false" />`
+## 19、参数回调
+*用于服务器端调用客户端的实现。*
+#### 代码示例
+```java
+public interface DemoService {
+    String sayHello(String name);
+
+    void hello();
+
+    void addListener(String key,CallbackListener callbackListener);
+}
+```
+**CallbackListener.java**
+```java
+public interface CallbackListener {
+    void changed(String msg);
+}
+```
+#### 提供者接口实现
+```java
+public class DemoServiceImpl implements DemoService {
+
+    private final Map<String, CallbackListener> listeners = new ConcurrentHashMap<>();
+
+    public DemoServiceImpl() {
+        Thread t = new Thread(() -> {
+            while (true) {
+                try {
+                    for (Map.Entry<String, CallbackListener> entry : listeners.entrySet()) {
+                        try {
+                            entry.getValue().changed(getChange(entry.getKey()));
+                        } catch (Exception e) {
+                            listeners.remove(entry.getKey());
+                        }
+                    }
+                    Thread.sleep(5000); // 定时触发变更通知
+                } catch (Throwable e) {// 防御容错
+                    e.printStackTrace();
+                }
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    public String sayHello(String name) {
+        return "Hello " + name;
+    }
+
+    @Override
+    public void hello() {
+        String fullString = RpcContext.getContext().getUrl().toFullString();
+        System.out.println(fullString);
+    }
+
+    @Override
+    public void addListener(String key, CallbackListener callbackListener) {
+        listeners.put(key, callbackListener);
+        callbackListener.changed(getChange(key));
+    }
+
+    private String getChange(String key) {
+        return key + "---Changed: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+    }
+}
+```
+**提供者XML配置**
+```XML
+    <dubbo:service interface="com.base.dubbo.service.DemoService" ref="demoService" connections="1" callbacks="20">
+        <dubbo:method name="addListener">
+            <dubbo:argument index="1" callback="true"/>
+        </dubbo:method>
+    </dubbo:service>
+```
+**消费方xml配置**
+```XML
+<dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService">
+```
+**消费方调用代码**
+```java
+public class Consumer {
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"consumer.xml"});
+        context.start();
+        DemoService demoService = (DemoService) context.getBean("demoService"); // 获取远程服务代理
+        String hello = demoService.sayHello("async"); // 执行远程方法
+        System.out.println(hello); // 立即返回null
+        // 拿到调用的Future引用，当结果返回后，会被通知和设置到此Future
+        Future<String> stringFuture = RpcContext.getContext().getFuture();
+        //打印返回结果
+        System.out.println(stringFuture.get());
+
+        demoService.hello();
+
+        demoService.addListener("callBackLister", (msg) -> System.out.println("callback1:" + msg));
+    }
+}
+```
+## 20、事件通知
+*在调用之前、调用之后、出现异常时，会触发 oninvoke、onreturn、onthrow 三个事件，可以配置当事件发生时，通知哪个类的哪个方法。*
+#### 服务提供者与消费者共享服务接口
+```java
+public interface DemoService {
+    Person get(String id);
+}
+```
+#### 服务提供者实现
+```java
+public class DemoServiceImpl implements DemoService {
+
+    @Override
+    public Person get(String id) {
+        if (Integer.parseInt(id)<0){
+            throw new RuntimeException("id不合法");
+        }
+        return new Person(id, "charles`son", 4);
+    }
+}
+```
+#### 服务提供者配置
+```XML
+    <!-- 声明需要暴露的服务接口 -->
+    <dubbo:service interface="com.base.dubbo.service.DemoService" ref="demoService" />
+
+    <!-- 和本地bean一样实现服务 -->
+    <bean id="demoService" class="com.base.dubbo.service.impl.DemoServiceImpl" />
+```
+#### 服务消费者 Callback 接口
+```java
+public interface Notify {
+    public void onreturn(Person person,String id);
+    public void onthrow(Throwable ex,String id);
+    void oninvoke(String id);
+}
+```
+#### 服务消费者 Callback 实现
+```java
+public class NotifyImpl implements Notify {
+
+    public Map<String, Person> ret = new HashMap<>();
+    public Map<String, Throwable> errors = new HashMap<>();
+
+    @Override
+    public void onreturn(Person person, String id) {
+        System.out.println("onreturn:" + person);
+        ret.put(id, person);
+    }
+
+    @Override
+    public void onthrow(Throwable ex, String id) {
+        System.out.println("ex = [" + ex + "], id = [" + id + "]");
+        errors.put(id, ex);
+    }
+
+    @Override
+    public void oninvoke(String id) {
+        System.out.println("id = [" + id + "]");
+    }
+}
+```
+#### 服务消费者 Callback 配置
+```java
+    <dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService">
+        <dubbo:method name="get" async="true" onreturn="notify.onreturn" onthrow="notify.onthrow"/>
+    </dubbo:reference>
+
+    <bean id="notify" class="com.base.dubbo.service.impl.NotifyImpl"/>
+```
+#### 测试代码
+```java
+public class Consumer {
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] {"consumer.xml"});
+        context.start();
+        DemoService demoService = (DemoService)context.getBean("demoService"); // 获取远程服务代理
+        NotifyImpl notify= (NotifyImpl) context.getBean("notify");
+        String requestId="2";
+        Person person = demoService.get(requestId);// 执行远程方法
+        Assert.assertEquals(null,person);
+        //for Test：只是用来说明callback正常被调用，业务具体实现自行决定.
+        for (int i = 0; i < 10; i++) {
+            if (!notify.ret.containsKey(requestId)) {
+                Thread.sleep(200);
+            } else {
+                break;
+            }
+        }
+        Assert.assertEquals(requestId, notify.ret.get(requestId).getId());
+
+        Person personEx = demoService.get("-1");// 执行远程方法
+        Assert.assertEquals(null,personEx);
+    }
+}
+```
+## 21、本地存根
+*Stub 存根，可以在dubbo 提供者端实现，也可在调用消费方实现； 如果消费方实现存根，则服务方 存根 将不起作用。可以做ThreadLocal本地缓存，或预先验证参数是否合法，等等*
+#### 本地存根消费方xml配置
+```XML
+    <dubbo:reference id="demoService" interface="com.base.dubbo.service.DemoService" stub="com.base.dubbo.service.impl.DemoServiceStub">
+        <dubbo:method name="get" onreturn="notify.onreturn" onthrow="notify.onthrow"/>
+    </dubbo:reference>
+```
+#### stub实现
+```java
+public class DemoServiceStub implements DemoService {
+
+    private DemoService demoService;
+
+    public DemoServiceStub(DemoService demoService) {
+        this.demoService = demoService;
+    }
+
+    @Override
+    public Person get(String id) {
+        Person person = null;
+        try {
+            if (Integer.parseInt(id) > 0) {
+                person = this.demoService.get(id);
+            } else {
+                person = new Person();
+                person.setName("系统用户");
+            }
+        } catch (Exception e) {
+            person = new Person();
+            person.setName("异常用户");
+        }
+        return person;
+    }
+}
+```
+**注意：**
+> 1、Stub 必须有可传入 Proxy 的构造函数。
+> 2、在 interface 旁边放一个 Stub 实现，它实现 DemoService 接口，并有一个传入远程 DemoService 实例的构造函数 。
+## 22、本地伪装
+*本地伪装通常用于服务降级，比如某验权服务，当服务提供方全部挂掉后，客户端不抛出异常，而是通过 Mock 数据返回授权失败。可以通过设置`mock="true"`或者`mock="具体的实现类"`，当抛出异常或者返回`null`时可以设置`mock="return null"`.mock约定就是只有出现 RpcException 时才执行。在 interface 旁放一个 Mock 实现，它实现 xxxService 接口，并有一个无参构造函数.*
